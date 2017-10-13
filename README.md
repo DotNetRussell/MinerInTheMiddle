@@ -21,7 +21,9 @@
 	
 	 ----To launch a popup miner attack----
 	
-	 A popup miner attack will attempt to inject a script into http responses. The script will wait for the user to click a button. When they do it will spawn a popup with their site in it and the origonal window will launch a miner. This is nice for persistence. 
+	 A popup miner attack will attempt to inject a script into http responses. The script will wait for the user to click a button.
+	 When they do it will spawn a popup with their site in it and the origonal window will launch a miner. This is nice for
+	 persistence. 
 	
    	 First run:
 	 		./miner_itm.sh --generate <coinhive api key>
