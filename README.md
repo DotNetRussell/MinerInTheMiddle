@@ -1,42 +1,39 @@
-
-		
 Miner In The Middle
-Author - Anthony Russell
-@DotNetRussell
+Author: Anthony Russell
+Twitter: @DotNetRussell
+Blog: https://www.DotNetRussell.com
 
 Not for illegal use!
 (unless you own the network or have permission from everyone on it, it's illegal)
 	 
 INTRO:
 
-Miner in the Middle is a script that allows you to inject javascript miners into everyone on your local network. It does this by arp spoofing the network and waiting for HTTP traffic. Once it sees it, it injects a coinhive javascript miner into the traffic and returns it to the client. The standard mode does this on whatever page the person is browsing. The pop under mode opens their requested page in a new tab and leaves the miner in the old tab. This allows for persistence. 
-	 
+Miner in the Middle is a script that allows you to inject javascript miners into targets on your local network. It does this using python, scapy and netfilterqueue. When you run the application, it will automatically configure your iptables and setup packet forwarding for you. The only things you need to do are run setup, start your arpspoofing and run the application. 
 	 
 TO USE:	 
-	 
-You will first need to make sure that you have `MitMf` and also `Twisted version 15.5.0`
-To install dependencies run:
-        `./miner_itm.sh --install`
+
+Make sure to configure your config.json file before attempting to use the application.   
+  
+You'll find a sample_config.json in this repo. You really only need two things in this config file.
+
+1. You're going to need to go to minero.cc - register an account - and get a public key. You'll put this public key in the config.json file under "site-key"
+2. The second thing you'll want to do is put in an ip constraint. This constraint prevents unintentional injection to targets outside of your scope. 
+If my target ips are in the 192.168.1.0 through 192.168.1.255 then in the config.json `ipConstraint` field, I would put `192.168.1` 
+
+BONUS: if you have your own js file you'd rather inject into people instead of the minero.cc miner, then in the config file, put the path of your js file in the `customInjection` field
+
+You will first need to make sure that you have the required python dependencies  
+  
+To install dependencies run:  
+        `./setup.sh`  
 	
    ----To launch a standard miner attack----
 	
    The standard network attack arp spoofs the network, then injects a miner into http responses.
    To launch a standard miner injection attack run:
-      ` ./miner_itm.sh <coinhive api key> <gateway ip> <interface name>`
+      ` ./mineritm.py /path/to/your/config.json`
 	
 	
-   ----To launch a popup miner attack----
-	
-   A popup miner attack will attempt to inject a script into http responses. The script will wait for the user to click a button.
-   When they do it will spawn a popup with their site in it and the origonal window will launch a miner. This is nice for persistence. 
-	
-   First run:
-      ` ./miner_itm.sh --generate <coinhive api key>`
-	
-   and place payload.html into your web server root directory
-	
-   Second run:
-    `   ./miner_itm.sh -p <gateway ip> <interface name> <web server ip>`
 	
 	
 
