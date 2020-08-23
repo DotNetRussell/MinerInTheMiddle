@@ -33,7 +33,19 @@ To install dependencies run:
    To launch a standard miner injection attack run:
       ` ./mineritm.py /path/to/your/config.json`
 	
-	
+
+   ----To launch a custom js injection attack----
+
+   You only need to create the js file and modify the config.json file. The config.json property for customInjection should be the path to your custom js file
+
+
+   ----To launch a popunder attack----
+
+   You'll need to configure a couple things for this. First, the config file should have the attacker ip filled in as well as the palyoad name. This just needs to be a file that you're hosting on your attacking box. For example, if I'm running an apache server at 192.168.1.10 and it's hosting the html file I want to display as my pop under and it's called test.html, then the attacker ip in the config file would be 192.168.1.10 and the payload name would be test.html  
+
+   Also, please make sure to start your server :-)  
+
+
 	
 	
 

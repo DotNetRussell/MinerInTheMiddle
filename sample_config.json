@@ -1,5 +1,8 @@
 {
+	"attackerIp" : "attackingBoxIpAddress",
 	"siteKey": "your-site-key-here",
 	"ipConstraint": "192.168.1",
-	"customInjection": "path/to/your/js"
+	"customInjection": "path/to/your/js",
+	"usePopUnder" : "False",
+	"payloadName" : "fileNameForPopup"
 }
